@@ -1,18 +1,17 @@
 spring:
   application:
-    name: golden-harvest
-  mvc:
-    static-path-pattern: /files/** # 브라우저 요청 URL 패턴
-  web:
-    resources:
-      static-locations: file:./uploads/  # 실제 파일 위치 (프로젝트 루트의 uploads 폴더)
+    name: golden-harvest-gateway # 게이트웨이 애플리케이션 이름
   profiles:
     active: local
 
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+  # Kafka Producer 설정
+  kafka:
+    producer:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092} # Kafka 서버 주소
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
 
   data:
     redis:
@@ -37,21 +36,18 @@ spring:
     username: admin
     password: harvest123
     driver-class-name: org.mariadb.jdbc.Driver
-
     hikari:
-      maximum-pool-size: 8        # 동시에 "빌릴 수 있는" 최대 커넥션
-      minimum-idle: 2             # 놀고 있어도 유지할 최소 커넥션
-      connection-timeout: 30000   # 커넥션 얻기 최대 대기(ms)
-      idle-timeout: 300000        # 유휴 커넥션 정리(ms)
-      max-lifetime: 1800000       # 커넥션 최대 수명(ms) (RDS 권장값과 충돌 방지)
-      leak-detection-threshold: 20000  # 20초 넘게 반납 안 하면 로그 경고
-      pool-name: goldenharvest-hikari
-
-
+      maximum-pool-size: 8
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      leak-detection-threshold: 20000
+      pool-name: goldenharvest-hikari-gateway
 
   jpa:
     hibernate:
-      ddl-auto: update #수정 금지
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -69,16 +65,18 @@ kamis:
   cert:
     key: ${KAMIS_CERT_KEY}
     id: ${KAMIS_CERT_ID}
+
 jwt:
   secret-key: ${JWT_SECRET_KEY}
-  access-token-expiration: 3600000  # 1시간
-  refresh-token-expiration: 1209600000  # 1일
+  access-token-expiration: 3600000    # 1시간
+  refresh-token-expiration: 1209600000 # 14일
 
 server:
-  port: 8088
+  port: 8000 # 게이트웨이 실행 포트
 
 inventory:
   base-url: http://localhost:8088
+
 aws:
   s3:
     bucket: goldenharvest-bucket

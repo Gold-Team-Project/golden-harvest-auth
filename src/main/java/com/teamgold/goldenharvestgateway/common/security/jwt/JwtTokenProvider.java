@@ -95,9 +95,11 @@ public class JwtTokenProvider {
         return getClaims(token).getSubject();
     }
 
-    //  토큰에서 데이터를 안전하게 꺼내오는 메서드
-    private Claims getClaims(String token) {
-        try {
+        // 토큰에서 데이터를 안전하게 꺼내오는 메서드
+
+        public Claims getClaims(String token) {
+
+            try {
             return Jwts.parser()
                     .verifyWith(secretKey)
                     .build()

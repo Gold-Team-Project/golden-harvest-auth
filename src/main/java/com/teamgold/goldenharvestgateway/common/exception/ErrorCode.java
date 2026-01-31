@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
 @Getter
-@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public enum ErrorCode {
     // Common Errors (1000-1999)
     INVALID_REQUEST("1000", "잘못된 요청입니다.", HttpStatus.BAD_REQUEST),
@@ -60,4 +59,11 @@ public enum ErrorCode {
     private final String code;
     private final String message;
     private final HttpStatusCode httpStatusCode;
+
+    ErrorCode(String code, String message, HttpStatusCode httpStatusCode) {
+        this.code = code;
+        this.message = message;
+        this.httpStatusCode = httpStatusCode;
+    }
 }
+
