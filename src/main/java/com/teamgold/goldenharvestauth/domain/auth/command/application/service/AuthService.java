@@ -1,0 +1,23 @@
+package com.teamgold.goldenharvestauth.domain.auth.command.application.service;
+
+import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.request.LoginRequest;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.request.PasswordResetRequest;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.request.SignUpRequest;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.response.TokenResponse;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.response.UserResponse;
+import org.springframework.web.multipart.MultipartFile;
+
+public interface AuthService {
+    void signup(SignUpRequest signUpRequest, MultipartFile file);
+
+    TokenResponse login(LoginRequest loginRequest);
+
+    TokenResponse reissue(String refreshToken);
+
+    void logout(String accessToken, String email);
+    //  비밀번호 재설정(비밀번호 찾기)
+    void resetPassword(PasswordResetRequest passwordResetRequest);
+
+    UserResponse getUserByEmail(String email);
+
+}
