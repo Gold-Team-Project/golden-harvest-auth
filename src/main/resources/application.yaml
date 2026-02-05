@@ -2,6 +2,8 @@ server:
   port: 8088 # 게이트웨이 실행 포트
 
 spring:
+  main:
+    web-application-type: servlet
   application:
     name: golden-harvest-auth
   profiles:
@@ -49,3 +51,11 @@ aws:
     secret-key: ${AWS_SECRET_ACCESS_KEY}
 file:
   upload-dir: ./uploads
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation: TRACE
+    org.springframework.http: DEBUG
+    org.springframework.http.converter: TRACE
