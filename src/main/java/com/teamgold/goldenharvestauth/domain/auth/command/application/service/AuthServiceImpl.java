@@ -41,6 +41,7 @@ public class AuthServiceImpl implements AuthService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final JwtProperties jwtProperties;
     private final FileUploadService fileUploadService;
+    private final com.teamgold.goldenharvestauth.common.kafka.EventProducerService eventProducerService;
 
     // User 정보 이벤트 리스너 (정동욱)
     private final ApplicationEventPublisher eventPublisher;
@@ -51,15 +52,15 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
-        //  이메일 인증 여부 확인
-        String isVerified = (String) redisTemplate.opsForValue().get("EMAIL_VERIFIED:" +  signUpRequest.getEmail());
+        // 이메일 인증 여부 확인
+        String isVerified = (String) redisTemplate.opsForValue().get("EMAIL_VERIFIED:" + signUpRequest.getEmail());
 
-        //  인증되지 않은 이메일인 경우 예외 발생
+        // 인증되지 않은 이메일인 경우 예외 발생
         if (isVerified == null || !isVerified.equals("true")) {
             throw new BusinessException(ErrorCode.EMAIL_VERIFICATION_REQUIRED);
         }
 
-        //  파일 업로드 tb_inquiry_file 테이블에 데이터가 쌓이고 File 객체가 반환
+        // 파일 업로드 tb_inquiry_file 테이블에 데이터가 쌓이고 File 객체가 반환
         File uploadedFile;
         try {
             uploadedFile = fileUploadService.upload(file);
@@ -68,10 +69,10 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR);
         }
 
-        Role role = roleRepository.findById("ROLE_USER")    // 사용자 권한 조회
+        Role role = roleRepository.findById("ROLE_USER") // 사용자 권한 조회
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        String encodedPassword = passwordEncoder.encode(signUpRequest.getPassword());   // 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(signUpRequest.getPassword()); // 비밀번호 암호화
 
         User user = User.builder()
                 .email(signUpRequest.getEmail())
@@ -88,7 +89,16 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         // 가입 완료 후 redis에 남아있는 인증 성공 기록 삭제
-        redisTemplate.delete("EMAIL_VERIFIED:" +  signUpRequest.getEmail());
+        redisTemplate.delete("EMAIL_VERIFIED:" + signUpRequest.getEmail());
+
+        // 알림 서비스로 회원가입 이벤트 전송
+        com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignupEvent signupEvent = com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignupEvent
+                .builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .company(user.getCompany())
+                .build();
+        eventProducerService.send("user.signup", signupEvent);
 
         // 이벤트 발행 시 요청되는 값 (정동욱)
         UserUpdatedEvent event = UserUpdatedEvent.builder()
@@ -106,10 +116,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public TokenResponse login(LoginRequest loginRequest) {
-        //  이메일로 사용자 조회
+        // 이메일로 사용자 조회
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        //  비밀번호 검증
+        // 비밀번호 검증
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new BusinessException(ErrorCode.PASSWORD_NOT_MATCH);
         }
@@ -117,7 +127,7 @@ public class AuthServiceImpl implements AuthService {
             // 관리자 승인이 필요한 상태
             throw new BusinessException(ErrorCode.USER_NOT_APPROVED);
         }
-        //  계정 상태 확인
+        // 계정 상태 확인
         if (!user.getStatus().equals(UserStatus.ACTIVE)) {
             throw new BusinessException(ErrorCode.USER_INACTIVE);
         }
@@ -127,8 +137,7 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue().set(
                 "RT:" + user.getEmail(),
                 refreshToken,
-                Duration.ofMillis(jwtProperties.getRefreshTokenExpiration())
-        );
+                Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()));
 
         return new TokenResponse(accessToken, refreshToken);
 
@@ -163,8 +172,7 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue().set(
                 "RT:" + email,
                 newRefreshToken,
-                Duration.ofMillis(jwtProperties.getRefreshTokenExpiration())
-        );
+                Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()));
 
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
@@ -189,33 +197,34 @@ public class AuthServiceImpl implements AuthService {
             redisTemplate.opsForValue().set(
                     "BL:" + accessToken,
                     "logout",
-                    Duration.ofMillis(expiration)
-            );
+                    Duration.ofMillis(expiration));
             log.info("액세스 토큰 블랙리스트 등록 완료 (남은 시간: {}ms)", expiration);
         }
     }
 
-    @Override//  비밀번호 재설정(비밀번호 찾기)
+    @Override // 비밀번호 재설정(비밀번호 찾기)
     public void resetPassword(PasswordResetRequest passwordResetRequest) {
-        //  redis에서 인증 여부 확인
-        String isVerified = (String) redisTemplate.opsForValue().get("EMAIL_VERIFIED:" + passwordResetRequest.getEmail());
+        // redis에서 인증 여부 확인
+        String isVerified = (String) redisTemplate.opsForValue()
+                .get("EMAIL_VERIFIED:" + passwordResetRequest.getEmail());
 
         if (isVerified == null || !isVerified.equals("true")) {
             throw new BusinessException(ErrorCode.EMAIL_VERIFICATION_REQUIRED);
         }
-        //  사용자 조회
+        // 사용자 조회
         User user = userRepository.findByEmail(passwordResetRequest.getEmail())
-                .orElseThrow(()->new BusinessException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        //  새 비밀번호 암호화 및 업데이트
+        // 새 비밀번호 암호화 및 업데이트
         user.updatePassword(passwordEncoder.encode(passwordResetRequest.getNewPassword()));
 
-        //  인증 기록 및 기존 리프레시 토큰 삭제(모든 기기 로그아웃)
+        // 인증 기록 및 기존 리프레시 토큰 삭제(모든 기기 로그아웃)
         redisTemplate.delete("EMAIL_VERIFIED:" + passwordResetRequest.getEmail());
         redisTemplate.delete("RT:" + passwordResetRequest.getEmail());
 
         log.info("[Golden Harvest] 비밀번호 재설정 완료: {}", passwordResetRequest.getEmail());
     }
+
     public UserResponse getUserByEmail(String email) {
 
         User user = userRepository.findByEmail(email)
@@ -223,6 +232,5 @@ public class AuthServiceImpl implements AuthService {
 
         return UserResponse.from(user);
     }
-
 
 }
