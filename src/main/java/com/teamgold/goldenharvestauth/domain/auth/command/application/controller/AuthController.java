@@ -82,5 +82,11 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
+    @PostMapping("/distribute")
+    public ResponseEntity<ApiResponse<?>> distribute() {
+        authService.distribute();
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 
 }

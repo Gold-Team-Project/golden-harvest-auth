@@ -29,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -225,6 +226,26 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         return UserResponse.from(user);
+    }
+
+    @Override
+    public void distribute() {
+        List<User> users = userRepository.findAll();
+
+        for (User user : users) {
+            UserStatusUpdatedEvent event = UserStatusUpdatedEvent.builder()
+                    .email(user.getEmail())
+                    .company(user.getCompany())
+                    .businessNumber(user.getBusinessNumber())
+                    .name(user.getName())
+                    .phoneNumber(user.getPhoneNumber())
+                    .addressLine1(user.getAddressLine1())
+                    .addressLine2(user.getAddressLine2())
+                    .postalCode(user.getPostalCode())
+                    .build();
+
+            publisher.publishEvent(event);
+        }
     }
 
 }

@@ -20,4 +20,5 @@ public interface AuthService {
 
     UserResponse getUserByEmail(String email);
 
+    void distribute();
 }

@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         // 인증 관련 API 전면 허용
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/distribute").permitAll()
                         .anyRequest().authenticated()
                 );
 
