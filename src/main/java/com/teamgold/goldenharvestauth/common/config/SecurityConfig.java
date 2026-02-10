@@ -57,7 +57,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Vue 개발 서버 주소 허용
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("https://d6y5hv3d5nlk0.cloudfront.net"));
 
         // 허용할 HTTP 메서드 설정 (회원가입은 POST 필수)
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
