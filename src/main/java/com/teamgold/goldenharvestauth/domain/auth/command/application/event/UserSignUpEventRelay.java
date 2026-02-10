@@ -1,6 +1,8 @@
-package com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto;
+package com.teamgold.goldenharvestauth.domain.auth.command.application.event;
 
 import com.teamgold.goldenharvestauth.common.kafka.EventProducerService;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignupEvent;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserStatusUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -20,5 +22,13 @@ public class UserSignUpEventRelay {
         log.info("유저 회원가입 이벤트 수신, kafka producing...");
 
         producer.send("user.signup.event", event);
+    }
+
+    @Async
+    @EventListener
+    public void handleUpdate(UserStatusUpdatedEvent event) {
+        log.info("UserStatusUpdatedEvent producing");
+
+        producer.send("user.status.updated", event);
     }
 }

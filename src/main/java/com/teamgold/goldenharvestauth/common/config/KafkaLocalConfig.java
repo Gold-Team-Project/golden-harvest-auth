@@ -70,7 +70,8 @@ public class KafkaLocalConfig {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 
         String typeMapping =
-                "UserSignupEvent:com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignupEvent";
+                "UserSignupEvent:com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignupEvent, " +
+                        "UserStatusUpdatedEvent:com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserStatusUpdatedEvent";
 
         props.put("spring.json.type.mapping", typeMapping);
 

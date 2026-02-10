@@ -14,7 +14,7 @@ import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.reques
 import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.request.SignUpRequest;
 import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.response.TokenResponse;
 import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.response.UserResponse;
-import com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignUpEventRelay;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserStatusUpdatedEvent;
 import com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserUpdatedEvent;
 import com.teamgold.goldenharvestauth.domain.auth.command.infrastructure.repository.RoleRepository;
 import com.teamgold.goldenharvestauth.domain.auth.command.infrastructure.repository.UserRepository;
@@ -92,17 +92,8 @@ public class AuthServiceImpl implements AuthService {
         // 가입 완료 후 redis에 남아있는 인증 성공 기록 삭제
         redisTemplate.delete("EMAIL_VERIFIED:" + signUpRequest.getEmail());
 
-        // 알림 서비스로 회원가입 이벤트 전송
-        com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignupEvent signupEvent = com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignupEvent
-                .builder()
-                .email(user.getEmail())
-                .name(user.getName())
-                .company(user.getCompany())
-                .build();
-        publisher.publishEvent(signupEvent);
-
         // 이벤트 발행 시 요청되는 값 (정동욱)
-        UserUpdatedEvent event = UserUpdatedEvent.builder()
+        UserStatusUpdatedEvent event = UserStatusUpdatedEvent.builder()
                 .email(user.getEmail())
                 .company(user.getCompany())
                 .businessNumber(user.getBusinessNumber())
@@ -112,6 +103,8 @@ public class AuthServiceImpl implements AuthService {
                 .addressLine2(user.getAddressLine2())
                 .postalCode(user.getPostalCode())
                 .build();
+
+
         eventPublisher.publishEvent(event);
     }
 
