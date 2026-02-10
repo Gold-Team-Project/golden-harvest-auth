@@ -16,7 +16,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
-@EnableWebSecurity // 중요: MVC 보안 활성화
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
@@ -27,29 +27,49 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. CSRF 비활성화 (JWT 사용 시 필요 없음)
+                // 1. CORS 설정 적용 (활성화)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // 2. CSRF 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 2. Form Login 및 Basic Auth 비활성화
+                // 3. Form Login 및 Basic Auth 비활성화
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                // 3. 세션 설정: Stateless (상태 없음, JWT 필수 설정)
+                // 4. 세션 설정: Stateless
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // 4. CORS 설정 적용 (필요 시 주석 해제)
-                // .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
                 // 5. URL별 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        // 인증 없이 접근 가능한 경로 (로그인, 회원가입 등)
                         .requestMatchers("/api/auth/**").permitAll()
-                        // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                 );
 
         return http.build();
+    }
+
+    // CORS 상세 설정을 위한 Bean 추가
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Vue 개발 서버 주소 허용
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+
+        // 허용할 HTTP 메서드 설정 (회원가입은 POST 필수)
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+
+        // 모든 헤더 허용 (Content-Type, Authorization 등)
+        configuration.setAllowedHeaders(List.of("*"));
+
+        // 자격 증명(쿠키/인증 헤더) 허용
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
