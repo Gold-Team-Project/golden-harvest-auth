@@ -14,6 +14,7 @@ import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.reques
 import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.request.SignUpRequest;
 import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.response.TokenResponse;
 import com.teamgold.goldenharvestauth.domain.auth.command.application.dto.response.UserResponse;
+import com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserSignUpEventRelay;
 import com.teamgold.goldenharvestauth.domain.auth.command.application.event.dto.UserUpdatedEvent;
 import com.teamgold.goldenharvestauth.domain.auth.command.infrastructure.repository.RoleRepository;
 import com.teamgold.goldenharvestauth.domain.auth.command.infrastructure.repository.UserRepository;
@@ -41,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final JwtProperties jwtProperties;
     private final FileUploadService fileUploadService;
-    private final com.teamgold.goldenharvestauth.common.kafka.EventProducerService eventProducerService;
+    private final ApplicationEventPublisher publisher;
 
     // User 정보 이벤트 리스너 (정동욱)
     private final ApplicationEventPublisher eventPublisher;
@@ -98,7 +99,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .company(user.getCompany())
                 .build();
-        eventProducerService.send("user.signup", signupEvent);
+        publisher.publishEvent(signupEvent);
 
         // 이벤트 발행 시 요청되는 값 (정동욱)
         UserUpdatedEvent event = UserUpdatedEvent.builder()
